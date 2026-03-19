@@ -2,3 +2,4 @@ flask
 openai
 pillow
 gunicorn
+flask-cors
