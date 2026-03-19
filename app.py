@@ -8,7 +8,7 @@ from openai import OpenAI
 app = Flask(__name__)
 CORS(app)
 
-client = OpenAI(api_key=os.getenv("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"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 if not os.path.exists("static"):
     os.makedirs("static")
