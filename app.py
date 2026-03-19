@@ -9,7 +9,16 @@ CORS(app)
 
 if not os.path.exists("static"):
     os.makedirs("static")
-
+@app.route("/teste")
+def teste():
+    return '''
+    <h2>Teste Simulador de Sorriso</h2>
+    <form action="/simular" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" />
+        <br><br>
+        <button type="submit">Enviar</button>
+    </form>
+    '''
 
 @app.route("/")
 def home():
