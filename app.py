@@ -52,6 +52,9 @@ def simular_sorriso():
         "antes": f"http://localhost:5000/{caminho_original}",
         "depois": f"http://localhost:5000/{caminho_editado}"
     })
+@app.route("/")
+def home():
+    return "Servidor rodando 🚀"
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(host="0.0.0.0", port=5000)
