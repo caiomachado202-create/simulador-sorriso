@@ -48,13 +48,18 @@ def simular_sorriso():
     with open(caminho_editado, "wb") as f:
         f.write(imagem_editada_bytes)
 
-    return jsonify({
-        "antes": f"http://localhost:5000/{caminho_original}",
-        "depois": f"http://localhost:5000/{caminho_editado}"
-    })
+request_url = request.host_url
+
+return jsonify({
+    "antes": f"{request_url}{caminho_original}",
+    "depois": f"{request_url}{caminho_editado}"
+})
+    
 @app.route("/")
 def home():
     return "Servidor rodando 🚀"
 
+import os
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
