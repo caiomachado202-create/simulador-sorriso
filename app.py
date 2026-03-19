@@ -1,65 +1,19 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import base64
+from PIL import Image, ImageEnhance
 import uuid
 import os
-from openai import OpenAI
 
 app = Flask(__name__)
 CORS(app)
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 if not os.path.exists("static"):
     os.makedirs("static")
 
 
-@app.route("/simular", methods=["POST"])
-def simular_sorriso():
-    data = request.json
-
-    imagem_base64 = data.get("imagem")
-    if not imagem_base64:
-        return jsonify({"erro": "Imagem não enviada"}), 400
-
-    try:
-        imagem_bytes = base64.b64decode(imagem_base64)
-    except Exception:
-        return jsonify({"erro": "Base64 inválido"}), 400
-
-    nome_arquivo = f"{uuid.uuid4()}.png"
-    caminho_original = f"static/{nome_arquivo}"
-
-    with open(caminho_original, "wb") as f:
-        f.write(imagem_bytes)
-
-    prompt = """
-    Improve this person's smile naturally:
-    - Slight whitening
-    - Keep natural look
-    """
-
-    with open(caminho_original, "rb") as img:
-        response = client.images.edit(
-            model="gpt-image-1",
-            image=img,
-            prompt=prompt
-        )
-
-    imagem_editada_base64 = response.data[0].b64_json
-    imagem_editada_bytes = base64.b64decode(imagem_editada_base64)
-
-    caminho_editado = f"static/edit_{nome_arquivo}"
-
-    with open(caminho_editado, "wb") as f:
-        f.write(imagem_editada_bytes)
-
-    request_url = request.host_url
-
-    return jsonify({
-        "antes": f"{request_url}{caminho_original}",
-        "depois": f"{request_url}{caminho_editado}"
-    })
+@app.route("/")
+def home():
+    return "Servidor rodando 🚀"
 
 
 @app.route("/ping")
@@ -67,9 +21,42 @@ def ping():
     return {"ok": True}
 
 
-@app.route("/")
-def home():
-    return "Servidor rodando 🚀"
+@app.route("/simular", methods=["POST"])
+def simular():
+    try:
+        if "file" not in request.files:
+            return jsonify({"erro": "Arquivo não enviado"}), 400
+
+        file = request.files["file"]
+
+        if file.filename == "":
+            return jsonify({"erro": "Nenhum arquivo selecionado"}), 400
+
+        nome_arquivo = f"{uuid.uuid4()}.jpg"
+        caminho_original = os.path.join("static", nome_arquivo)
+        caminho_editado = os.path.join("static", f"edit_{nome_arquivo}")
+
+        file.save(caminho_original)
+
+        with Image.open(caminho_original) as img:
+            img = img.convert("RGB")
+
+            brilho = ImageEnhance.Brightness(img).enhance(1.08)
+            contraste = ImageEnhance.Contrast(brilho).enhance(1.12)
+            cor = ImageEnhance.Color(contraste).enhance(0.95)
+
+            cor.save(caminho_editado, quality=90)
+
+        base_url = request.host_url
+
+        return jsonify({
+            "antes": f"{base_url}{caminho_original}",
+            "depois": f"{base_url}{caminho_editado}",
+            "mensagem": "Simulação pronta"
+        })
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 
 if __name__ == "__main__":
