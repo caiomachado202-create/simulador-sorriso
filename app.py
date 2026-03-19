@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from PIL import Image
 import uuid
 import os
 import base64
@@ -14,16 +15,6 @@ if not os.path.exists("static"):
     os.makedirs("static")
 
 
-@app.route("/")
-def home():
-    return "Servidor rodando 🚀"
-
-
-@app.route("/ping")
-def ping():
-    return {"ok": True}
-
-
 @app.route("/teste")
 def teste():
     return '''
@@ -34,6 +25,16 @@ def teste():
         <button type="submit">Enviar</button>
     </form>
     '''
+
+
+@app.route("/")
+def home():
+    return "Servidor rodando 🚀"
+
+
+@app.route("/ping")
+def ping():
+    return {"ok": True}
 
 
 @app.route("/simular", methods=["POST"])
@@ -48,33 +49,45 @@ def simular():
             return jsonify({"erro": "Nenhum arquivo selecionado"}), 400
 
         nome_base = str(uuid.uuid4())
-        caminho_original = os.path.join("static", f"{nome_base}.png")
+        caminho_original = os.path.join("static", f"{nome_base}.jpg")
         caminho_editado = os.path.join("static", f"edit_{nome_base}.png")
 
         file.save(caminho_original)
 
+        # Reduz a imagem antes de enviar para ficar mais rápido e mais estável
+        with Image.open(caminho_original) as img:
+            img = img.convert("RGB")
+            img.thumbnail((700, 700))
+            img.save(caminho_original, format="JPEG", quality=88)
+
         prompt = """
-        Edit this portrait photo to create a realistic dental smile simulation.
-        Requirements:
-        - preserve the same person and facial identity
-        - enhance the smile in a natural and believable way
+        Create a realistic dental smile refinement for this photo.
+
+        Rules:
+        - keep the exact same person
+        - preserve the same face, lips, skin, facial expression and head position
+        - edit only the visible teeth and smile area
         - subtly whiten the teeth
-        - slightly improve tooth alignment
-        - close only small visible gaps if present
-        - keep natural anatomy, lip shape, gingiva and proportions
-        - avoid fake veneers, overexposed white teeth, or artificial plastic look
-        - keep the result clinically plausible and premium
-        - maintain realistic skin, lighting and facial details
+        - slightly improve visible tooth alignment
+        - close only very small gaps if present
+        - keep the result conservative, elegant and clinically believable
+        - do not change the lips
+        - do not change the face shape
+        - do not make the person smile more
+        - do not create fake veneers
+        - do not make teeth overly white
+        - do not make teeth too large
+        - avoid any artificial AI look
+        - premium, natural and minimal result
         """
 
-        with open(caminho_original, "rb") as img:
+        with open(caminho_original, "rb") as img_file:
             response = client.images.edit(
                 model="gpt-image-1",
-                image=img,
+                image=img_file,
                 prompt=prompt,
-                size="1024x1024",
-                quality="medium",
-                output_format="png"
+                size="512x512",
+                quality="medium"
             )
 
         imagem_editada_b64 = response.data[0].b64_json
