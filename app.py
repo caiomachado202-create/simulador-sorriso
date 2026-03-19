@@ -1,12 +1,14 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import base64
 import uuid
 import os
 from openai import OpenAI
 
 app = Flask(__name__)
+CORS(app)
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=os.getenv("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"))
 
 if not os.path.exists("static"):
     os.makedirs("static")
