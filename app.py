@@ -57,11 +57,13 @@ return jsonify({
     "depois": f"{request_url}{caminho_editado}"
 })
     
+@app.route("/ping")
+def ping():
+    return {"ok": True}
+
 @app.route("/")
 def home():
     return "Servidor rodando 🚀"
-
-import os
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
