@@ -1,14 +1,29 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from PIL import Image, ImageEnhance
 import uuid
 import os
+import base64
+from openai import OpenAI
 
 app = Flask(__name__)
 CORS(app)
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 if not os.path.exists("static"):
     os.makedirs("static")
+
+
+@app.route("/")
+def home():
+    return "Servidor rodando 🚀"
+
+
+@app.route("/ping")
+def ping():
+    return {"ok": True}
+
+
 @app.route("/teste")
 def teste():
     return '''
@@ -19,15 +34,6 @@ def teste():
         <button type="submit">Enviar</button>
     </form>
     '''
-
-@app.route("/")
-def home():
-    return "Servidor rodando 🚀"
-
-
-@app.route("/ping")
-def ping():
-    return {"ok": True}
 
 
 @app.route("/simular", methods=["POST"])
@@ -41,20 +47,41 @@ def simular():
         if file.filename == "":
             return jsonify({"erro": "Nenhum arquivo selecionado"}), 400
 
-        nome_arquivo = f"{uuid.uuid4()}.jpg"
-        caminho_original = os.path.join("static", nome_arquivo)
-        caminho_editado = os.path.join("static", f"edit_{nome_arquivo}")
+        nome_base = str(uuid.uuid4())
+        caminho_original = os.path.join("static", f"{nome_base}.png")
+        caminho_editado = os.path.join("static", f"edit_{nome_base}.png")
 
         file.save(caminho_original)
 
-        with Image.open(caminho_original) as img:
-            img = img.convert("RGB")
+        prompt = """
+        Edit this portrait photo to create a realistic dental smile simulation.
+        Requirements:
+        - preserve the same person and facial identity
+        - enhance the smile in a natural and believable way
+        - subtly whiten the teeth
+        - slightly improve tooth alignment
+        - close only small visible gaps if present
+        - keep natural anatomy, lip shape, gingiva and proportions
+        - avoid fake veneers, overexposed white teeth, or artificial plastic look
+        - keep the result clinically plausible and premium
+        - maintain realistic skin, lighting and facial details
+        """
 
-            brilho = ImageEnhance.Brightness(img).enhance(1.08)
-            contraste = ImageEnhance.Contrast(brilho).enhance(1.12)
-            cor = ImageEnhance.Color(contraste).enhance(0.95)
+        with open(caminho_original, "rb") as img:
+            response = client.images.edit(
+                model="gpt-image-1",
+                image=img,
+                prompt=prompt,
+                size="1024x1024",
+                quality="medium",
+                output_format="png"
+            )
 
-            cor.save(caminho_editado, quality=90)
+        imagem_editada_b64 = response.data[0].b64_json
+        imagem_editada_bytes = base64.b64decode(imagem_editada_b64)
+
+        with open(caminho_editado, "wb") as f:
+            f.write(imagem_editada_bytes)
 
         base_url = request.host_url
 
