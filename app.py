@@ -87,7 +87,7 @@ def simular():
                 image=img_file,
                 prompt=prompt,
                 size="512x512",
-                quality="medium"
+                
             )
 
         imagem_editada_b64 = response.data[0].b64_json
